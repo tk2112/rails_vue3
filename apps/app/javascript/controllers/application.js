@@ -7,5 +7,3 @@ application.debug = false
 window.Stimulus   = application
 
 export { application }
-
-import * as Vue from "vue/dist/vue.esm-browser.js"; // Vueの読み込み
