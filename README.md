@@ -9,5 +9,11 @@ Confirm the addition.
 ```
 pin "application", preload: true
 pin_all_from "app/javascript/controllers", under: "controllers"
-pin "vue/dist/vue.esm-browser.js", to: "vue--dist--vue.esm-browser.js.js"
+pin_all_from "app/javascript/components", under: "components"
+pin "vue", to: "vue--dist--vue.esm-browser.js.js"
+```
+Include Vue3
+On js file
+```
+import * as Vue from "vue"; // by `pin "vue", to: "vue--dist--vue.esm-browser.js.js"`
 ```
