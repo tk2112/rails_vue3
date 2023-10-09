@@ -15,7 +15,16 @@ const Products = {
             <table class="relative h-full w-full py-2 text-left text-gray-500">
                 <thead class="text-gray-700">
                 <tr>
-                <th class="sticky top-0 whitespace-nowrap bg-gray-50 px-6 py-3 text-center">{{productInformations.columnNames[productInformations.columnIdList.control_no]}}</th>
+                <th class="sticky top-0 whitespace-nowrap bg-gray-50 px-6 py-3 text-center">
+                    <span class="flex">
+                        <span>
+                            {{ productInformations.columnNames[productInformations.columnIdList.control_no] }}
+                        </span>
+                        <span v-if="isUpCoulumnSort(productInformations.columnIdList.control_no)" @click="toggleCoulumnSort(productInformations.columnIdList.control_no)" v-html="sortUpIcon" class="flex items-center justify-center pl-2" />
+                        <span v-else-if="isDownCoulumnSort(productInformations.columnIdList.control_no)" @click="toggleCoulumnSort(productInformations.columnIdList.control_no)" v-html="sortDownIcon" class="flex items-center justify-center pl-2" />
+                        <span v-else @click="toggleCoulumnSort(productInformations.columnIdList.control_no)" v-html="sortDefaultIcon" class="flex items-center justify-center pl-2" />
+                    </span>
+                </th>
                 <th class="sticky top-0 whitespace-nowrap bg-gray-50 px-6 py-3">{{productInformations.columnNames[productInformations.columnIdList.machine_code]}}</th>
                 <th class="sticky top-0 whitespace-nowrap bg-gray-50 px-6 py-3">{{productInformations.columnNames[productInformations.columnIdList.machine_name]}}</th>
                 <th class="sticky top-0 whitespace-nowrap bg-gray-50 px-6 py-3 text-center">{{productInformations.columnNames[productInformations.columnIdList.order_date]}}</th>
@@ -87,6 +96,11 @@ const Products = {
             productInformations: {
                 isSetting: false,
                 columnNames: [],
+                columnSort: {
+                    up: [],
+                    down: [],
+                    defalut: [],
+                },
                 data: [],
                 columnIdList: {
                     control_no: 15,
@@ -113,10 +127,17 @@ const Products = {
             },
             showPlanedDate: false,
             csvFileName: '',
+            sortUpIcon: '<svg viewBox="0 0 24 24" stroke-width="3" class="w-6 h-6 flex fill-none stroke-blue-500 hover:stroke-blue-700"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>',
+            sortDownIcon: '<svg viewBox="0 0 24 24" stroke-width="3" class="w-6 h-6 flex fill-none stroke-blue-500 hover:stroke-blue-700"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" /></svg>',
+            sortDefaultIcon: '<svg viewBox="0 0 24 24" stroke-width="3" class="w-6 h-6 flex fill-none stroke-blue-500 hover:stroke-blue-700"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 15L12 18.75 15.75 15m-7.5-6L12 5.25 15.75 9" /></svg>',
         }
     },
     created: function(){
         
+    },
+    mounted : function(){
+        const columnIdList = this.productInformations.columnIdList;
+        this.productInformations.columnSort.defalut.push(columnIdList.control_no);
     },
     methods: {
         initProductInformations() {
@@ -137,6 +158,29 @@ const Products = {
         },
         getStateShowPlanedDateName() {
             return this.showPlanedDate? '各予定日を閉じる': '各予定日を開く';
+        },
+        toggleCoulumnSort(coulumnID) {
+            if (this.isUpCoulumnSort(coulumnID)) {
+                const delIndex = this.productInformations.columnSort.up.indexOf(coulumnID);
+                this.productInformations.columnSort.down.push(coulumnID);
+                this.productInformations.columnSort.up.splice(delIndex, 1);               
+            }
+            else if (this.isDownCoulumnSort(coulumnID)) {
+                const delIndex = this.productInformations.columnSort.down.indexOf(coulumnID);
+                this.productInformations.columnSort.defalut.push(coulumnID);
+                this.productInformations.columnSort.down.splice(delIndex, 1);
+            }
+            else {
+                const delIndex = this.productInformations.columnSort.defalut.indexOf(coulumnID);
+                this.productInformations.columnSort.up.push(coulumnID);
+                this.productInformations.columnSort.defalut.splice(delIndex, 1);
+            }
+        },
+        isUpCoulumnSort(coulumnID) {
+            return this.productInformations.columnSort.up.includes(coulumnID);
+        },
+        isDownCoulumnSort(coulumnID) {
+            return this.productInformations.columnSort.down.includes(coulumnID);
         },
     },
     computed: {
