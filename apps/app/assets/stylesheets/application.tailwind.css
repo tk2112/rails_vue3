@@ -11,3 +11,11 @@
 }
 
 */
+/*
+.confirm_btn {
+  @apply bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 border border-blue-700 rounded
+}
+.input_file_box {
+  @apply text-sm text-slate-500 bg-gray-50 hover:bg-gray-200 mr-1  border border-blue-700 rounded file:mr-4 file:py-2 file:px-4 file:border-0 file:text-sm file:font-semibold file:bg-blue-500 file:text-white hover:file:bg-blue-700
+}
+*/
