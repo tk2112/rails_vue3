@@ -1,117 +1,86 @@
 import * as Vue from "vue";
-import MyCsv from "components/my-csv";
+import MyCsv from "./my-csv";
+import { GanttChart } from "./gantt-chart";
+import {  parse, format, addDays, isBefore } from 'date-fns'
 
 const Products = {
     template: `
         <div class="mx-4" style="height: 10%;">
             <div class="pt-4">
                 <span class="mr-2">出荷情報CSV</span>
-                <input class="text-slate-500 bg-gray-50 hover:bg-gray-200 border border-blue-700 rounded file:mr-4 file:py-2 file:px-4 file:border-0 file:bg-blue-500 file:text-white hover:file:bg-blue-700" type="file" ref="fileInput" @change="handleFileUpload" />
-                <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 border border-blue-700 rounded ml-2" @click="initProductInformations" v-show="csvFileName">インポート</button>
-                <button class="text-white font-bold py-2 px-4 border rounded ml-2" @click="changeStateShowPlanedDate" v-show="productInformations.isSetting" :class="stylesShowPlanedDate">{{ getStateShowPlanedDateName() }}</button>
+                <input class="w-96 text-slate-500 bg-gray-50 hover:bg-gray-200 border border-blue-700 rounded file:mr-4 file:py-2 file:px-4 file:border-0 file:bg-blue-500 file:text-white hover:file:bg-blue-700" type="file" ref="fileInput" @change="handleFileUpload" />
+                <button v-show="csvFileName" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 border border-blue-700 rounded ml-2" @click="initProductInformations">インポート</button>
+                <button v-show="productInformations.isSetting" class="ml-2 w-44" @click="changeStateShowPlanedDate" :class="stylesShowPlanedDate">{{ getStateShowPlanedDateName() }}</button>
+                <button v-show="productInformations.isSetting" class="ml-2 w-44" @click="changeStateGanttChart" :class="stylesShowGanttChart()">{{ getStateShowGanttChart() }}</button>
             </div>
         </div>
-        <div v-show="productInformations.isSetting" class="overflow-auto mx-4" style="height: 85%;">
-            <table class="relative h-full w-full py-2 text-left text-gray-500">
+        <div v-if="productInformations.isSetting" class="overflow-auto mx-4" style="height: 85%;">
+            <table v-show="productInformations.showTable" class="relative h-full w-full py-2 text-left text-gray-500">
                 <thead class="text-gray-700">
                 <tr>
-                <th class="sticky top-0 whitespace-nowrap bg-gray-50 px-6 py-3 text-center">
-                    <span class="flex">
-                        <span>
-                            {{ productInformations.columnNames[productInformations.columnIdList.control_no] }}
+                    <th v-for="columnID in productInformations.drawColumnIdList" v-show="isShow(columnID)" class="sticky top-0 whitespace-nowrap bg-gray-50 px-6 py-3">
+                        <span class="flex">
+                            <span :class="stylesTextAlign(columnID)">{{ productInformations.columnNames[columnID] }}</span>
+                            <span v-if="isUpCoulumnSort(columnID)" @click="toggleCoulumnSort(columnID)" v-html="sortUpIcon" class="flex items-center justify-center pl-2" />
+                            <span v-else-if="isDownCoulumnSort(columnID)" @click="toggleCoulumnSort(columnID)" v-html="sortDownIcon" class="flex items-center justify-center pl-2" />
+                            <span v-else @click="toggleCoulumnSort(columnID)" v-html="sortDefaultIcon" class="flex items-center justify-center pl-2" />
                         </span>
-                        <span v-if="isUpCoulumnSort(productInformations.columnIdList.control_no)" @click="toggleCoulumnSort(productInformations.columnIdList.control_no)" v-html="sortUpIcon" class="flex items-center justify-center pl-2" />
-                        <span v-else-if="isDownCoulumnSort(productInformations.columnIdList.control_no)" @click="toggleCoulumnSort(productInformations.columnIdList.control_no)" v-html="sortDownIcon" class="flex items-center justify-center pl-2" />
-                        <span v-else @click="toggleCoulumnSort(productInformations.columnIdList.control_no)" v-html="sortDefaultIcon" class="flex items-center justify-center pl-2" />
-                    </span>
-                </th>
-                <th class="sticky top-0 whitespace-nowrap bg-gray-50 px-6 py-3">{{productInformations.columnNames[productInformations.columnIdList.machine_code]}}</th>
-                <th class="sticky top-0 whitespace-nowrap bg-gray-50 px-6 py-3">{{productInformations.columnNames[productInformations.columnIdList.machine_name]}}</th>
-                <th class="sticky top-0 whitespace-nowrap bg-gray-50 px-6 py-3 text-center">{{productInformations.columnNames[productInformations.columnIdList.order_date]}}</th>
-                <th class="sticky top-0 whitespace-nowrap bg-gray-50 px-6 py-3 text-center" v-show="showPlanedDate">{{productInformations.columnNames[productInformations.columnIdList.planed_date_draw_machine]}}</th>
-                <th class="sticky top-0 whitespace-nowrap bg-gray-50 px-6 py-3 text-center" v-show="showPlanedDate">{{productInformations.columnNames[productInformations.columnIdList.planed_date_draw_electric]}}</th>
-                <th class="sticky top-0 whitespace-nowrap bg-gray-50 px-6 py-3 text-center" v-show="showPlanedDate">{{productInformations.columnNames[productInformations.columnIdList.planed_date_buy]}}</th>
-                <th class="sticky top-0 whitespace-nowrap bg-gray-50 px-6 py-3 text-center" v-show="showPlanedDate">{{productInformations.columnNames[productInformations.columnIdList.planed_date_supply]}}</th>
-                <th class="sticky top-0 whitespace-nowrap bg-gray-50 px-6 py-3 text-center" v-show="showPlanedDate">{{productInformations.columnNames[productInformations.columnIdList.planed_date_assemble_start]}}</th>
-                <th class="sticky top-0 whitespace-nowrap bg-gray-50 px-6 py-3 text-center" v-show="showPlanedDate">{{productInformations.columnNames[productInformations.columnIdList.planed_date_assemble_end]}}</th>
-                <th class="sticky top-0 whitespace-nowrap bg-gray-50 px-6 py-3 text-center" v-show="showPlanedDate">{{productInformations.columnNames[productInformations.columnIdList.planed_date_exam]}}</th>
-                <th class="sticky top-0 whitespace-nowrap bg-gray-50 px-6 py-3 text-center" v-show="showPlanedDate">{{productInformations.columnNames[productInformations.columnIdList.planed_date_soft]}}</th>
-                <th class="sticky top-0 whitespace-nowrap bg-gray-50 px-6 py-3 text-center" v-show="showPlanedDate">{{productInformations.columnNames[productInformations.columnIdList.planed_date_line]}}</th>
-                <th class="sticky top-0 whitespace-nowrap bg-gray-50 px-6 py-3 text-center" v-show="showPlanedDate">{{productInformations.columnNames[productInformations.columnIdList.planed_date_manual]}}</th>
-                <th class="sticky top-0 whitespace-nowrap bg-gray-50 px-6 py-3 text-center">{{productInformations.columnNames[productInformations.columnIdList.planed_delivery_date]}}</th>
-                <th class="sticky top-0 whitespace-nowrap bg-gray-50 px-6 py-3 text-center">{{productInformations.columnNames[productInformations.columnIdList.order_no]}}</th>
-                <th class="sticky top-0 whitespace-nowrap bg-gray-50 px-6 py-3">{{productInformations.columnNames[productInformations.columnIdList.delivery_name]}}</th>
-                <th class="sticky top-0 whitespace-nowrap bg-gray-50 px-6 py-3">{{productInformations.columnNames[productInformations.columnIdList.customer_name]}}</th>
-                <th class="sticky top-0 whitespace-nowrap bg-gray-50 px-6 py-3">{{productInformations.columnNames[productInformations.columnIdList.manager_purcahse_order]}}</th>
+                    </th>
                 </tr>
                 </thead>
                 <tbody>
-                <tr class="bg-white border-b hover:bg-gray-50" v-for="(value, index) of productInformations.data">
-                <td :class="stylesCommonCell" class="text-center">{{value[productInformations.columnIdList.control_no]}}</td>
-                <td :class="stylesCommonCell">{{value[productInformations.columnIdList.machine_code]}}</td> 
-                <td :class="stylesCommonCell">{{value[productInformations.columnIdList.machine_name]}}</td>
-                <td :class="stylesCommonCell" class="text-center">{{value[productInformations.columnIdList.order_date]}}</td>
-                <td v-show="showPlanedDate" :class="[stylesVariableCell(value[productInformations.columnIdList.planed_date_draw_machine]), stylesCommonCell]" class="text-center">
-                    <span :class="stylesValueHidden(value[productInformations.columnIdList.planed_date_draw_machine])">{{value[productInformations.columnIdList.planed_date_draw_machine]}}</span>
-                </td>
-                <td v-show="showPlanedDate" :class="[stylesVariableCell(value[productInformations.columnIdList.planed_date_draw_electric]), stylesCommonCell]" class="text-center">
-                    <span :class="stylesValueHidden(value[productInformations.columnIdList.planed_date_draw_electric])">{{value[productInformations.columnIdList.planed_date_draw_electric]}}</span>
-                </td>
-                <td v-show="showPlanedDate" :class="[stylesVariableCell(value[productInformations.columnIdList.planed_date_buy]), stylesCommonCell]" class="text-center">
-                    <span :class="stylesValueHidden(value[productInformations.columnIdList.planed_date_buy])">{{value[productInformations.columnIdList.planed_date_buy]}}</span>
-                </td>
-                <td v-show="showPlanedDate" :class="[stylesVariableCell(value[productInformations.columnIdList.planed_date_supply]), stylesCommonCell]" class="text-center">
-                    <span :class="stylesValueHidden(value[productInformations.columnIdList.planed_date_supply])">{{value[productInformations.columnIdList.planed_date_supply]}}</span>
-                </td>
-                <td v-show="showPlanedDate" :class="[stylesVariableCell(value[productInformations.columnIdList.planed_date_assemble_start]), stylesCommonCell]" class="text-center">
-                    <span :class="stylesValueHidden(value[productInformations.columnIdList.planed_date_assemble_start])">{{value[productInformations.columnIdList.planed_date_assemble_start]}}</span>
-                </td>
-                <td v-show="showPlanedDate" :class="[stylesVariableCell(value[productInformations.columnIdList.planed_date_assemble_end]), stylesCommonCell]" class="text-center">
-                    <span :class="stylesValueHidden(value[productInformations.columnIdList.planed_date_assemble_end])">{{value[productInformations.columnIdList.planed_date_assemble_end]}}</span>
-                </td>
-                <td v-show="showPlanedDate" :class="[stylesVariableCell(value[productInformations.columnIdList.planed_date_exam]), stylesCommonCell]" class="text-center">
-                    <span :class="stylesValueHidden(value[productInformations.columnIdList.planed_date_exam])">{{value[productInformations.columnIdList.planed_date_exam]}}</span>
-                </td>
-                <td v-show="showPlanedDate" :class="[stylesVariableCell(value[productInformations.columnIdList.planed_date_soft]), stylesCommonCell]" class="text-center">
-                    <span :class="stylesValueHidden(value[productInformations.columnIdList.planed_date_soft])">{{value[productInformations.columnIdList.planed_date_soft]}}</span>
-                </td>
-                <td v-show="showPlanedDate" :class="[stylesVariableCell(value[productInformations.columnIdList.planed_date_line]), stylesCommonCell]" class="text-center">
-                    <span :class="stylesValueHidden(value[productInformations.columnIdList.planed_date_line])">{{value[productInformations.columnIdList.planed_date_line]}}</span>
-                </td>
-                <td v-show="showPlanedDate" :class="[stylesVariableCell(value[productInformations.columnIdList.planed_date_manual]), stylesCommonCell]">
-                    <span :class="stylesValueHidden(value[productInformations.columnIdList.planed_date_manual])">{{value[productInformations.columnIdList.planed_date_manual]}}</span>
-                </td>
-                <td :class="stylesCommonCell" class="text-center">{{value[productInformations.columnIdList.planed_delivery_date]}}</td>
-                <td :class="stylesCommonCell" class="text-center">{{value[productInformations.columnIdList.order_no]}}</td>
-                <td :class="stylesCommonCell">{{value[productInformations.columnIdList.delivery_name]}}</td>
-                <td :class="stylesCommonCell">{{value[productInformations.columnIdList.customer_name]}}</td>
-                <td :class="stylesCommonCell">{{value[productInformations.columnIdList.manager_purcahse_order]}}</td>
+                <tr v-for="row in productInformations.data" class="bg-white border-b hover:bg-gray-50">
+                    <td v-for="columnID in productInformations.drawColumnIdList" v-show="isShow(columnID)" :class="[stylesCommonCell, stylesTextAlign(columnID), stylesVariableCell(row[columnID])]">
+                        <span :class="stylesValueHidden(row[columnID])">{{ row[columnID] }}</span>
+                    </td>
                 </tr>
                 </tbody>
             </table>
+            <ganttChart v-show="showGanttChart" />
         </div>
     `,
-    data(){
+    components: {
+        'ganttChart': GanttChart,
+    },
+    data() {
         return {
+            sortUp: 1,
+            sortDown: -1,
+            sortNone: 0,
             productInformations: {
-                isSetting: false,
-                columnNames: [],
-                columnSort: {
-                    up: [],
-                    down: [],
-                    defalut: [],
-                },
                 data: [],
+                isSetting: false,
+                showTable: true,
+                minDate: '',
+                maxDate: '',
+                columnNames: {},
+                columnSort: {},
+                drawColumnIdList: [ // 描画はこの並びに基づく
+                    'control_no',
+                    'machine_code',
+                    'machine_name',
+                    'order_date',
+                    'planed_date_draw_machine',
+                    'planed_date_draw_electric',
+                    'planed_date_buy',
+                    'planed_date_supply',
+                    'planed_date_assemble_start',
+                    'planed_date_assemble_end',
+                    'planed_date_exam',
+                    'planed_date_soft',
+                    'planed_date_line',
+                    'planed_date_manual',
+                    'planed_delivery_date',
+                    'order_no',
+                    'delivery_name',
+                    'delivery_address',
+                    'customer_name',
+                    'manager_purcahse_order',
+                ],
                 columnIdList: {
                     control_no: 15,
                     machine_code: 16,
                     machine_name: 17,
-                    planed_delivery_date: 18,
-                    order_no: 0,
-                    delivery_name: 2,
-                    delivery_address: 4,
-                    customer_name: 8,
-                    manager_purcahse_order: 180,
                     order_date: 176,
                     planed_date_draw_machine: 135,
                     planed_date_draw_electric: 136,
@@ -123,32 +92,155 @@ const Products = {
                     planed_date_soft: 142,
                     planed_date_line: 143,
                     planed_date_manual: 144,
+                    planed_delivery_date: 18,
+                    order_no: 0,
+                    delivery_name: 2,
+                    delivery_address: 4,
+                    customer_name: 8,
+                    manager_purcahse_order: 180,
+                    order_status: 92,
+                    order_detail_no: 1,
+                    product_no: 131,
+                    composition_no: 175,
+                    control_no_labels: 132,
+                    amount_labels: 133,
+                    unit_price: 174,
+                    preferred_delivery_date_header: 170,
+                    preferred_delivery_date: 171,
+                    delivery_date_order: 127,
+                    delivery_post: 3,
+                    delivery_address: 4,
+                    delivery_tel: 5,
+                    delivery_fax: 6,
+                    delivery_manager: 7,
+                    customer_post: 9,
+                    customer_address: 10,
+                    customer_tel: 11,
+                    customer_fax: 12,
+                    customer_manager: 13,
+                    assembly_location_code: 172,
+                    assembly_location_name: 128,
+                    arch_width: 21,
+                    arch_height: 22,
+                    band_size: 23,
+                    frequency: 24,
+                    voltage: 25,
+                    other_spec_01: 26,
+                    other_spec_02: 27,
+                    other_spec_03: 28,
+                    other_spec_04: 29,
+                    other_spec_05: 30,
+                    other_spec_06: 31,
+                    other_spec_07: 32,
+                    other_spec_08: 33,
+                    other_spec_09: 34,
+                    other_spec_10: 35,
+                    other_spec_11: 36,
+                    other_spec_12: 37,
+                    other_spec_13: 38,
+                    other_spec_14: 39,
+                    other_spec_15: 40,
+                    other_spec_16: 41,
+                    other_spec_17: 42,
+                    other_spec_18: 43,
+                    other_spec_19: 44,
+                    other_spec_20: 45,
+                    other_spec_21: 46,
+                    other_spec_22: 47,
+                    other_spec_23: 48,
+                    other_spec_24: 49,
+                    color: 83,
+                    power_consumption: 84,
+                    breaking_capacity: 85,
+                    full_load_current: 86,
+                    sequence_no: 87,
+                    note_product_common: 130,
+                    note_product_special_spec: 126,
+                    note_product_inner: 173,
+                    note_order_detail: 93,
+                    note_order_common: 94,
+                    note_order_only_base: 145,
+                    note_order_shipment: 95,
+                    shipment_company: 19,
+                    shipment_no: 20,
+                    planed_man_hours: 157,
+                    date_draw_machine: 147,
+                    date_draw_electric: 148,
+                    date_buy: 149,
+                    date_supply: 150,
+                    date_assemble_start: 151,
+                    date_assemble_end: 152,
+                    date_exam: 153,
+                    date_soft: 154,
+                    date_line: 155,
+                    date_manual: 156,
+                    delivery_date: 169,
+                    manager_draw_machine: 159,
+                    manager_draw_electric: 160,
+                    manager_buy: 161,
+                    manager_supply: 162,
+                    manager_assemble_start: 163,
+                    manager_assemble_end: 164,
+                    manager_exam: 165,
+                    manager_soft: 166,
+                    manager_line: 167,
+                    manager_manual: 168,
+                    end_user: 177,
+                    middleman_1: 178,
+                    middleman_2: 179,
                 },
             },
+            showGanttChart: false,
             showPlanedDate: false,
             csvFileName: '',
             sortUpIcon: '<svg viewBox="0 0 24 24" stroke-width="3" class="w-6 h-6 flex fill-none stroke-blue-500 hover:stroke-blue-700"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>',
             sortDownIcon: '<svg viewBox="0 0 24 24" stroke-width="3" class="w-6 h-6 flex fill-none stroke-blue-500 hover:stroke-blue-700"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" /></svg>',
             sortDefaultIcon: '<svg viewBox="0 0 24 24" stroke-width="3" class="w-6 h-6 flex fill-none stroke-blue-500 hover:stroke-blue-700"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 15L12 18.75 15.75 15m-7.5-6L12 5.25 15.75 9" /></svg>',
+            button: {
+                procClass: ['border-gray-700', 'bg-gray-500', 'hover:bg-gray-700', 'text-white', 'font-bold', 'py-2', 'px-4', 'border', 'rounded'],
+                middleClass: ['border-green-700', 'bg-green-500', 'hover:bg-green-700', 'text-white', 'font-bold', 'py-2', 'px-4', 'border', 'rounded'],
+            },
         }
     },
     created: function(){
         
     },
     mounted : function(){
-        const columnIdList = this.productInformations.columnIdList;
-        this.productInformations.columnSort.defalut.push(columnIdList.control_no);
+        
+    },
+    provide() {
+        return {
+            productInformations: this.productInformations,
+            button: this.button,
+            countDateMinBetweenMax: this.countDateMinBetweenMax,
+        }
     },
     methods: {
         initProductInformations() {
             const me = this;
 
             MyCsv.readFile(this.csvFileName).then(function(readData){
-                me.productInformations.columnNames = readData.shift();
-                me.productInformations.data = readData;
+                const columnNames = readData.shift(); // CSVデータの1行目を列名称行として配列保存
+                
+                for (let [key, value] of Object.entries(me.productInformations.columnIdList)) {
+                    me.productInformations.columnNames[key] = columnNames[value];
+                }
+ 
+                for (var n = 0; n < readData.length; n++) {
+                    let row = readData[n];
+
+                    me.productInformations.data.push({});
+                    
+                    for (let key in me.productInformations.columnNames) {
+                        me.productInformations.data[n][key] = row[me.productInformations.columnIdList[key]];
+                    }
+                }
                 me.productInformations.isSetting = true;
+                me.setMinAndMaxDate(); // 最小日付と最大日付をセット
+
+                // console.log(me.productInformations.minDate);
+                // console.log(me.productInformations.maxDate);
             });
-            //console.log(this.csvData);
         },
         handleFileUpload(event) {            
             this.csvFileName = event.target.files[0];
@@ -159,37 +251,157 @@ const Products = {
         getStateShowPlanedDateName() {
             return this.showPlanedDate? '各予定日を閉じる': '各予定日を開く';
         },
-        toggleCoulumnSort(coulumnID) {
-            if (this.isUpCoulumnSort(coulumnID)) {
-                const delIndex = this.productInformations.columnSort.up.indexOf(coulumnID);
-                this.productInformations.columnSort.down.push(coulumnID);
-                this.productInformations.columnSort.up.splice(delIndex, 1);               
+        toggleCoulumnSort(columnID) {
+            if (this.isUpCoulumnSort(columnID)) {
+                // 現在が昇順の場合は降順に
+                this.productInformations.columnSort[columnID] = this.sortDown;
             }
-            else if (this.isDownCoulumnSort(coulumnID)) {
-                const delIndex = this.productInformations.columnSort.down.indexOf(coulumnID);
-                this.productInformations.columnSort.defalut.push(coulumnID);
-                this.productInformations.columnSort.down.splice(delIndex, 1);
+            else if (this.isDownCoulumnSort(columnID)) {
+                // 現在が降順の場合はデフォルトに
+                delete this.productInformations.columnSort[columnID];
             }
             else {
-                const delIndex = this.productInformations.columnSort.defalut.indexOf(coulumnID);
-                this.productInformations.columnSort.up.push(coulumnID);
-                this.productInformations.columnSort.defalut.splice(delIndex, 1);
+                // 現在がデフォルトの場合は昇順に
+                this.productInformations.columnSort[columnID] = this.sortUp;
             }
+            
+            // 並び替え
+            this.productInformations.data.sort((a, b) => {
+                for (let columnID in this.productInformations.columnSort) {
+                    // 昇順
+                    if (this.productInformations.columnSort[columnID] == this.sortUp) {
+                        if (a[columnID] < b[columnID]) return -1;
+                        if (a[columnID] > b[columnID]) return 1;
+                    }
+                    // 降順
+                    else if (this.productInformations.columnSort[columnID] == this.sortDown) {
+                        if (a[columnID] < b[columnID]) return 1;
+                        if (a[columnID] > b[columnID]) return -1;
+                    }
+                    
+                }
+                return 0; // すべての列が同じ場合、順序を変更しない
+            });
+            // console.log(this.productInformations.columnSort);
         },
         isUpCoulumnSort(coulumnID) {
-            return this.productInformations.columnSort.up.includes(coulumnID);
+            return this.productInformations.columnSort[coulumnID] == this.sortUp? true: false;
         },
         isDownCoulumnSort(coulumnID) {
-            return this.productInformations.columnSort.down.includes(coulumnID);
+            return this.productInformations.columnSort[coulumnID] == this.sortDown? true: false;
+        },
+        isShow(coulumnID) {
+            switch (coulumnID) {
+                case 'planed_date_draw_machine':
+                case 'planed_date_draw_electric':
+                case 'planed_date_buy':
+                case 'planed_date_supply':
+                case 'planed_date_assemble_start':
+                case 'planed_date_assemble_end':
+                case 'planed_date_exam':
+                case 'planed_date_soft':
+                case 'planed_date_line':
+                case 'planed_date_manual':
+                    return this.showPlanedDate;
+                    break;
+                default:
+                    return true;
+                    break;
+            }
+        },
+        changeStateGanttChart() {
+            this.showGanttChart = !this.showGanttChart;
+            this.productInformations.showTable = !this.showGanttChart;
+        },
+        getStateShowGanttChart() {
+            return this.showGanttChart? '出荷情報一覧を開く': 'ガントチャートを開く';
+        },
+        stylesShowGanttChart() {
+            if (this.showGanttChart) {
+                return this.button.procClass;
+            }
+            else {
+                return this.button.middleClass;
+            }
+        },
+        setMinAndMaxDate() {
+            const columnDateId = [
+                'order_date',
+                'planed_date_draw_machine',
+                'planed_date_draw_electric',
+                'planed_date_buy',
+                'planed_date_supply',
+                'planed_date_assemble_start',
+                'planed_date_assemble_end',
+                'planed_date_exam',
+                'planed_date_soft',
+                'planed_date_line',
+                'planed_date_manual',
+                'planed_delivery_date',
+            ];
+            const isInvalidDate = (date) => Number.isNaN(date.getTime());
+            
+            for (const row of this.productInformations.data) {
+                for (const columnID of columnDateId) {
+                    const japaneseDate = row[columnID];
+                    const parsedDate = parse(japaneseDate, 'yyyy/MM/dd', new Date());
+
+                    if (!isInvalidDate(parsedDate)) {
+                        const formattedDate = format(parsedDate, 'yyyy-MM-dd');
+
+                        if (!this.productInformations.minDate || formattedDate < this.productInformations.minDate) this.productInformations.minDate = formattedDate;
+                        if (!this.productInformations.maxDate || formattedDate > this.productInformations.maxDate) this.productInformations.maxDate = formattedDate;
+                    }
+                }
+            }
+        },
+        countDateMinBetweenMax() {
+            const startDate =  parse(this.productInformations.minDate, 'yyyy-MM-dd', new Date());
+            const endDate =  parse(this.productInformations.maxDate, 'yyyy-MM-dd', new Date());
+            let currentDate = startDate;
+            let re = [];
+
+            while (isBefore(currentDate, endDate) || currentDate.getTime() === endDate.getTime()) {
+                const formattedDate = format(currentDate, 'yyyy-MM-dd');
+                re.push(formattedDate);
+                currentDate = addDays(currentDate, 1);
+            }
+
+            return re;
         },
     },
     computed: {
+        stylesTextAlign: function() {
+            return (columnId) => {
+                switch (columnId) {
+                    case 'control_no':
+                    case 'planed_delivery_date':
+                    case 'order_no':
+                    case 'order_date':
+                    case 'planed_date_draw_machine':
+                    case 'planed_date_draw_electric':
+                    case 'planed_date_buy':
+                    case 'planed_date_supply':
+                    case 'planed_date_assemble_start':
+                    case 'planed_date_assemble_end':
+                    case 'planed_date_exam':
+                    case 'planed_date_soft':
+                    case 'planed_date_line':
+                    case 'planed_date_manual':
+                        return 'text-center';
+                        break;
+                    default:
+                        return 'text-left';
+                        break;
+                }
+            };
+        },
         stylesShowPlanedDate: function() {
             if (this.showPlanedDate) {
-                return ['border-gray-700', 'bg-gray-500', 'hover:bg-gray-700'];
+                return this.button.procClass;
             }
             else {
-                return ['border-green-700', 'bg-green-500', 'hover:bg-green-700'];
+                return this.button.middleClass;
             }
         },
         stylesCommonCell: function() {
@@ -218,6 +430,7 @@ const Products = {
 const app = Vue.createApp({
     components: {
         'products': Products,
+        'ganttChart': GanttChart,
     },
 });
 
