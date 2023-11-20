@@ -2,5 +2,6 @@
 import "@hotwired/turbo-rails"
 import "controllers"
 
-import "./components/products"
-import "./components/gantt-chart"
+// import "./components/products"
+// import "./components/gantt-chart"
+import "./components/products/ProductsIndex"
