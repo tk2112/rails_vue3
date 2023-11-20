@@ -1,5 +1,5 @@
 import * as Vue from "vue";
-import MyCsv from "./my-csv";
+import MyCsv from "../modules/my-csv";
 import { GanttChart } from "./gantt-chart";
 import {  parse, format, addDays, isBefore } from 'date-fns'
 
@@ -10,33 +10,37 @@ const Products = {
                 <span class="mr-2">出荷情報CSV</span>
                 <input class="w-96 text-slate-500 bg-gray-50 hover:bg-gray-200 border border-blue-700 rounded file:mr-4 file:py-2 file:px-4 file:border-0 file:bg-blue-500 file:text-white hover:file:bg-blue-700" type="file" ref="fileInput" @change="handleFileUpload" />
                 <button v-show="csvFileName" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 border border-blue-700 rounded ml-2" @click="initProductInformations">インポート</button>
-                <button v-show="productInformations.isSetting" class="ml-2 w-44" @click="changeStateShowPlanedDate" :class="stylesShowPlanedDate">{{ getStateShowPlanedDateName() }}</button>
+                <button v-show="productInformations.isSetting" class="ml-2 w-44" @click="changeStateShowDetailPlanedDate" :class="stylesShowDetailPlanedDate">{{ getStateShowDetailPlanedDateName() }}</button>
                 <button v-show="productInformations.isSetting" class="ml-2 w-44" @click="changeStateGanttChart" :class="stylesShowGanttChart()">{{ getStateShowGanttChart() }}</button>
             </div>
         </div>
-        <div v-if="productInformations.isSetting" class="overflow-auto mx-4" style="height: 85%;">
-            <table v-show="productInformations.showTable" class="relative h-full w-full py-2 text-left text-gray-500">
-                <thead class="text-gray-700">
-                <tr>
-                    <th v-for="columnID in productInformations.drawColumnIdList" v-show="isShow(columnID)" class="sticky top-0 whitespace-nowrap bg-gray-50 px-6 py-3">
-                        <span class="flex">
-                            <span :class="stylesTextAlign(columnID)">{{ productInformations.columnNames[columnID] }}</span>
-                            <span v-if="isUpCoulumnSort(columnID)" @click="toggleCoulumnSort(columnID)" v-html="sortUpIcon" class="flex items-center justify-center pl-2" />
-                            <span v-else-if="isDownCoulumnSort(columnID)" @click="toggleCoulumnSort(columnID)" v-html="sortDownIcon" class="flex items-center justify-center pl-2" />
-                            <span v-else @click="toggleCoulumnSort(columnID)" v-html="sortDefaultIcon" class="flex items-center justify-center pl-2" />
-                        </span>
-                    </th>
-                </tr>
-                </thead>
-                <tbody>
-                <tr v-for="row in productInformations.data" class="bg-white border-b hover:bg-gray-50">
-                    <td v-for="columnID in productInformations.drawColumnIdList" v-show="isShow(columnID)" :class="[stylesCommonCell, stylesTextAlign(columnID), stylesVariableCell(row[columnID])]">
-                        <span :class="stylesValueHidden(row[columnID])">{{ row[columnID] }}</span>
-                    </td>
-                </tr>
-                </tbody>
-            </table>
-            <ganttChart v-show="showGanttChart" />
+        <div v-if="productInformations.isSetting" style="height: 85%;">
+            <div v-show="showPlanedDate" class="overflow-auto mx-4" style="height: 100%;">
+                <table class="h-full w-full py-2 text-left text-gray-500">
+                    <thead class="text-gray-700">
+                    <tr>
+                        <th v-for="columnID in productInformations.drawColumnIdList" v-show="isShow(columnID)" class="sticky top-0 whitespace-nowrap bg-gray-50 px-6 py-3">
+                            <span class="flex">
+                                <span :class="stylesTextAlign(columnID)">{{ productInformations.columnNames[columnID] }}</span>
+                                <span v-if="isUpCoulumnSort(columnID)" @click="toggleCoulumnSort(columnID)" v-html="sortUpIcon" class="flex items-center justify-center pl-2" />
+                                <span v-else-if="isDownCoulumnSort(columnID)" @click="toggleCoulumnSort(columnID)" v-html="sortDownIcon" class="flex items-center justify-center pl-2" />
+                                <span v-else @click="toggleCoulumnSort(columnID)" v-html="sortDefaultIcon" class="flex items-center justify-center pl-2" />
+                            </span>
+                        </th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr v-for="row in productInformations.data" class="bg-white border-b hover:bg-gray-50">
+                        <td v-for="columnID in productInformations.drawColumnIdList" v-show="isShow(columnID)" :class="[stylesCommonCell, stylesTextAlign(columnID), stylesVariableCell(row[columnID])]">
+                            <span :class="stylesValueHidden(row[columnID])">{{ row[columnID] }}</span>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div v-show="showGanttChart">
+                <ganttChart />
+            </div>
         </div>
     `,
     components: {
@@ -50,7 +54,6 @@ const Products = {
             productInformations: {
                 data: [],
                 isSetting: false,
-                showTable: true,
                 minDate: '',
                 maxDate: '',
                 columnNames: {},
@@ -190,8 +193,9 @@ const Products = {
                     middleman_2: 179,
                 },
             },
+            showPlanedDate: true,
+            showDetailPlanedDate: false,
             showGanttChart: false,
-            showPlanedDate: false,
             csvFileName: '',
             sortUpIcon: '<svg viewBox="0 0 24 24" stroke-width="3" class="w-6 h-6 flex fill-none stroke-blue-500 hover:stroke-blue-700"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>',
             sortDownIcon: '<svg viewBox="0 0 24 24" stroke-width="3" class="w-6 h-6 flex fill-none stroke-blue-500 hover:stroke-blue-700"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" /></svg>',
@@ -213,6 +217,7 @@ const Products = {
             productInformations: this.productInformations,
             button: this.button,
             countDateMinBetweenMax: this.countDateMinBetweenMax,
+            showDetailPlanedDate: this.showDetailPlanedDate,
         }
     },
     methods: {
@@ -245,11 +250,11 @@ const Products = {
         handleFileUpload(event) {            
             this.csvFileName = event.target.files[0];
         },
-        changeStateShowPlanedDate() {
-            this.showPlanedDate = !this.showPlanedDate;
+        changeStateShowDetailPlanedDate() {
+            this.showDetailPlanedDate = !this.showDetailPlanedDate;
         },
-        getStateShowPlanedDateName() {
-            return this.showPlanedDate? '各予定日を閉じる': '各予定日を開く';
+        getStateShowDetailPlanedDateName() {
+            return this.showDetailPlanedDate? '各予定日を閉じる': '各予定日を開く';
         },
         toggleCoulumnSort(columnID) {
             if (this.isUpCoulumnSort(columnID)) {
@@ -302,7 +307,7 @@ const Products = {
                 case 'planed_date_soft':
                 case 'planed_date_line':
                 case 'planed_date_manual':
-                    return this.showPlanedDate;
+                    return this.showDetailPlanedDate;
                     break;
                 default:
                     return true;
@@ -311,7 +316,7 @@ const Products = {
         },
         changeStateGanttChart() {
             this.showGanttChart = !this.showGanttChart;
-            this.productInformations.showTable = !this.showGanttChart;
+            this.showPlanedDate = !this.showPlanedDate;
         },
         getStateShowGanttChart() {
             return this.showGanttChart? '出荷情報一覧を開く': 'ガントチャートを開く';
@@ -396,8 +401,8 @@ const Products = {
                 }
             };
         },
-        stylesShowPlanedDate: function() {
-            if (this.showPlanedDate) {
+        stylesShowDetailPlanedDate: function() {
+            if (this.showDetailPlanedDate) {
                 return this.button.procClass;
             }
             else {

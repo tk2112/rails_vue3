@@ -33,12 +33,12 @@ Include encoding-japanese.js in js file.
 ```
 import Encoding from "encoding";
 ```
-# heroicins
-[HomePage](https://heroicons.com/)
-
-# date-fns
+# Add `date-fns` by `importmap`
 [GitHub](https://github.com/date-fns/date-fns)
+
 On terminal
 ```
 bin/importmap pin date-fns --download
 ```
+# heroicins
+[HomePage](https://heroicons.com/)
