@@ -1,4 +1,5 @@
 import * as Vue from "vue";
+import * as Xlsx from 'xlsx';
 import {getCsrfToken} from "../../modules/getCsrfToken";
 
 const Invoice = {
@@ -45,6 +46,8 @@ const Invoice = {
         return {
             token: '', 
             inputFileName: '', 
+            invoiceSheet:  { pattern: '^.*Invoice.*$', object: null },
+            attachedSheet: { pattern: '^.*MARKS.?ATTACHED.*$', object: null },
             button: {
                 runClass: ['bg-blue-500', 'hover:bg-blue-700', 'border', 'border-blue-700', 'rounded-lg', 'text-white', 'font-bold', 'px-4', 'py-3'],
                 procClass: ['border-gray-400', 'bg-gray-200', 'hover:bg-gray-400', 'text-black', 'font-bold', 'px-4', 'py-3', 'border', 'rounded-lg'],
@@ -72,7 +75,53 @@ const Invoice = {
                     break;
                 }
             }
+            
+            this.readExcelFile(inputfile)
+                .then(readData => {
+                    console.log(this.invoiceSheet.object);
+                    console.log(this.attachedSheet.object);
+                })
+                .catch(error => {
+                    console.error(999);
+                });
+
             this.inputFileName = inputfileNameStr;
+        },
+        readExcelFile(file) {
+            const me = this;
+
+            return new Promise(function(resolve, reject){
+                if (!file) return
+                
+                const reader = new FileReader();
+    
+                reader.onload = (e) => { // コールバック関数設定、ファイル読み込みが完了すると非同期に呼び出される
+                    const data = e.target.result;
+                    // SheetJS を使用してデータを処理
+                    const workbook = Xlsx.read(data, { type: 'binary' });
+                    const invoiceSheetNameRegExp = new RegExp(me.invoiceSheet.pattern);
+                    const attachedSheetNameRegExp = new RegExp(me.attachedSheet.pattern);                    
+
+                    for (const sheetName of workbook.SheetNames) {
+                        if (invoiceSheetNameRegExp.test(sheetName)) {
+                            me.invoiceSheet.object = workbook.Sheets[sheetName];
+
+                        }
+                        else if (attachedSheetNameRegExp.test(sheetName)) {
+                            me.attachedSheet.object = workbook.Sheets[sheetName];
+                        }
+                    }
+                    
+                    if (me.invoiceSheet.object && me.attachedSheet.object) {
+                        resolve();
+                    }
+                    else {
+                        reject();
+                    }
+                };
+    
+                reader.readAsBinaryString(file); // ファイル読み込み開始
+            });
         },
     },
 };

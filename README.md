@@ -38,7 +38,7 @@ import Encoding from "encoding";
 
 On terminal
 ```
-bin/importmap pin date-fns --download
+bin/importmap pin date-fns
 ```
 # heroicins
 [HomePage](https://heroicons.com/)
@@ -50,4 +50,12 @@ rails active_storage:install
 Then run migration.
 ```
 rails db:migrate
+```
+# Add `SheetJS` by `importmap`
+[OfficialSite](https://sheetjs.com/)
+[GitHub](https://github.com/SheetJS/sheetjs)
+
+On terminal
+```
+bin/importmap pin xlsx
 ```

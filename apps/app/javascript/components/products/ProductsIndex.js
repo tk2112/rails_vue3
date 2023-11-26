@@ -24,9 +24,6 @@ const Products = {
             <span v-show="productInformations.isSetting" class="ml-2">
                 <selectWithinIntervalGanttChartButton v-show="showGanttChart" />
             </span>
-            <span class="ml-2">
-                <a :href="domProperties.homeUrl">ホームへ戻る</a>
-            </span>
         </div>
         <div v-if="productInformations.isSetting" style="height: 85%;">
             <div v-show="showPlanedDate" class="overflow-auto mx-4" style="height: 100%;">
@@ -46,7 +43,6 @@ const Products = {
     },
     data() {
         return {
-            domProperties: document.getElementById('entry-list').dataset,
             showPlanedDate: false,
             showDetailPlanedDate: false,
             showGanttChart: true,
@@ -177,7 +173,7 @@ const Products = {
                 procClass: ['border-gray-400', 'bg-gray-200', 'hover:bg-gray-400', 'text-black', 'font-bold', 'px-4', 'py-3', 'border', 'rounded-lg'],
                 middleClass: ['border-green-700', 'bg-green-500', 'hover:bg-green-700', 'text-white', 'font-bold', 'px-4', 'py-3', 'border', 'rounded-lg'],
             },
-            googleApiToken: 'AIzaSyDnbOQEIbzol63kPiON5rgIZ8WTqE802kU',
+            googleApiToken: '',
         }
     },
     props: [
@@ -187,7 +183,7 @@ const Products = {
         
     },
     mounted : function(){
-        console.log(this.test);
+        
     },
     provide() {
         return {
