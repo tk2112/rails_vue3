@@ -42,3 +42,12 @@ bin/importmap pin date-fns --download
 ```
 # heroicins
 [HomePage](https://heroicons.com/)
+# Install ActiveStorage
+On terminal
+```
+rails active_storage:install
+```
+Then run migration.
+```
+rails db:migrate
+```

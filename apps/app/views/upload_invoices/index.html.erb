@@ -1,0 +1,10 @@
+<div class="flex flex-col">
+  <p><%= link_to 'ホームへ戻る', root_path %></p>
+  
+  <div id="invoice">
+    <invoice :input-name="'name'" :input-file="'invoice_file'"></invoice>
+  </div>
+</div>
+<% content_for :meta_t do %>
+  <meta name="turbo-visit-control" content="reload">
+<% end %>
